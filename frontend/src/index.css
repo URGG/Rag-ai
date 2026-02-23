@@ -1,15 +1,9 @@
 @import "tailwindcss";
-
-/* That's it! v4 handles the rest. */
-
 body {
     background-color: #0f172a;
-    /* Slate 900 */
     color: #f8fafc;
-    /* Slate 50 */
 }
 
-@import "tailwindcss";
 @layer utilities {
     .scrollbar-thin::-webkit-scrollbar {
         width: 6px;
