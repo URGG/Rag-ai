@@ -3,16 +3,17 @@ import { Send, FileCode, Terminal, Cpu, Database, ChevronRight, Activity, Upload
 
 function App() {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: "SYSTEM INITIALIZED. Drag files anywhere to index knowledge." }
+    { role: 'ai', text: "SYSTEM INITIALIZED. Agentic RAG and Automation active." }
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [stagedCommand, setStagedCommand] = useState(null); 
   const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, isTyping]);
+  }, [messages, isTyping, stagedCommand]);
 
   // --- DRAG AND DROP LOGIC ---
   const handleDragOver = (e) => {
@@ -47,9 +48,39 @@ function App() {
     }
   };
 
+  // --- AUTOMATION APPROVAL LOGIC ---
+  const runApproval = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/approve_command', { method: 'POST' });
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'ai', text: `TERMINAL_OUTPUT:\n${data.output || data.error}` }]);
+      setStagedCommand(null);
+    } catch (error) {
+       setMessages(prev => [...prev, { role: 'ai', text: "ERROR: Failed to run command." }]);
+    }
+  };
+
   // --- CHAT LOGIC ---
   const handleSend = async () => {
     if (!input) return;
+    
+    // TEMPORARY OVERRIDE: Type exactly 'test command' to trigger the staging tool safely
+    if (input === 'test command') {
+      try {
+         const res = await fetch('http://127.0.0.1:8000/request_command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: 'dir' }), 
+         });
+         const data = await res.json();
+         setStagedCommand(data.command);
+         setInput("");
+         return;
+      } catch (e) {
+          console.error(e);
+      }
+    }
+
     const userMsg = { role: 'user', text: input };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
@@ -133,7 +164,7 @@ function App() {
                 <div className={`mt-1 flex-shrink-0 w-8 h-8 rounded border flex items-center justify-center ${m.role === 'user' ? 'border-blue-500/50 bg-blue-500/10 text-blue-400' : 'border-[#333] bg-[#111] text-[#666]'}`}>
                   {m.role === 'user' ? 'U' : <Cpu size={14}/>}
                 </div>
-                <div className={`px-5 py-3 rounded text-sm ${m.role === 'user' ? 'bg-blue-600/10 border border-blue-500/20' : 'bg-[#0d0d0d] border border-[#222]'}`}>
+                <div className={`px-5 py-3 rounded text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-blue-600/10 border border-blue-500/20' : 'bg-[#0d0d0d] border border-[#222]'}`}>
                   <div className="text-[9px] mb-1 opacity-30 font-bold uppercase">{m.role === 'user' ? 'USR' : 'SYS'}</div>
                   {m.text}
                 </div>
@@ -143,13 +174,29 @@ function App() {
           {isTyping && <div className="text-[10px] text-blue-500 animate-pulse px-12">THINKING_...</div>}
         </div>
 
+        {/* STAGED COMMAND UI */}
+        {stagedCommand && (
+          <div className="mx-8 mb-4 p-4 bg-red-950/20 border border-red-500/50 rounded flex justify-between items-center z-20">
+            <div className="text-xs text-red-400 font-bold flex flex-col">
+              <span className="opacity-50 uppercase tracking-tighter mb-1">Warning: Pending Execution</span>
+              <code className="bg-black/50 px-2 py-1 rounded text-red-300">{stagedCommand}</code>
+            </div>
+            <button 
+              onClick={runApproval}
+              className="bg-red-500 hover:bg-red-600 transition-colors text-white text-[10px] px-4 py-2 rounded font-black uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+            >
+              Approve & Execute
+            </button>
+          </div>
+        )}
+
         {/* INPUT */}
-        <div className="p-8 pt-0">
+        <div className="p-8 pt-0 z-20">
           <div className="max-w-4xl mx-auto relative bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg flex items-center focus-within:border-blue-500/50 transition-all">
             <Terminal size={18} className="ml-4 text-blue-900" />
             <input 
               className="w-full bg-transparent border-none py-4 px-4 text-sm focus:ring-0"
-              placeholder="COMMAND_> _"
+              placeholder="COMMAND_> _ (Type 'test command' to try automation)"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}

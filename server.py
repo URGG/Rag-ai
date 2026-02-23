@@ -2,6 +2,7 @@ import os
 import shutil
 import json
 import sqlite3
+import subprocess
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -29,7 +30,6 @@ DATA_DIR = "H:/RAG/data"
 DB_DIR = "H:/RAG/chroma_db"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Initialize SQLite Persistent Memory
 conn = sqlite3.connect(os.path.join(DATA_DIR, 'kernel_memory.db'), check_same_thread=False)
 cursor = conn.cursor()
 cursor.execute('''
@@ -58,12 +58,16 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 
 print("INITIALIZING WEB SEARCH...")
 web_search = DuckDuckGoSearchRun()
+
 print("SYSTEM READY.")
 
 class ChatRequest(BaseModel):
     question: str
 
-# 4. THE SMART ROUTER ENDPOINT
+# 4. AUTOMATION STATE
+pending_command = None
+
+# 5. THE ENDPOINTS
 @app.post("/ask")
 async def ask_ai(request: ChatRequest):
     print(f"\n--- NEW KERNEL INQUIRY ---")
@@ -89,10 +93,9 @@ async def ask_ai(request: ChatRequest):
         
     print(f"SYSTEM_ROUTE: {route_decision.upper()}")
 
-    # Gather Context based on the route
+    # Gather Context
     context = ""
     if route_decision == "local_search":
-        print("EXECUTING LOCAL VECTOR SEARCH...")
         try:
             search_results = vectorstore.similarity_search(request.question, k=4)
             context = "\n---\n".join([doc.page_content for doc in search_results])
@@ -100,13 +103,11 @@ async def ask_ai(request: ChatRequest):
             context = "Local database empty."
             
     elif route_decision == "web_search":
-        print("EXECUTING LIVE WEB SEARCH...")
         try:
             context = web_search.run(request.question)
         except Exception as e:
             context = f"Web search failed: {e}"
 
-    # Fetch Persistent Memory
     history_text = get_history()
     
     system_prompt = f"""You are Kernel_RAG, a highly advanced local engineering assistant.
@@ -130,21 +131,35 @@ async def ask_ai(request: ChatRequest):
     ])
     
     answer = final_response['message']['content']
-    
-    # Save to SQLite Persistent Memory
     save_to_memory(request.question, answer)
     
     return {"answer": answer}
 
-# 5. THE FILE UPLOAD ENDPOINT
+@app.post("/request_command")
+async def request_command(request: ChatRequest):
+    global pending_command
+    pending_command = request.question 
+    return {"status": "Awaiting Approval", "command": pending_command}
+
+@app.post("/approve_command")
+async def approve_command():
+    global pending_command
+    if not pending_command:
+        return {"error": "No command staged."}
+    
+    try:
+        result = subprocess.run(pending_command, shell=True, capture_output=True, text=True)
+        output = result.stdout if result.returncode == 0 else result.stderr
+        pending_command = None
+        return {"status": "Success", "output": output}
+    except Exception as e:
+        return {"status": "Failed", "error": str(e)}
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     file_path = os.path.join(DATA_DIR, file.filename)
-    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    
-    print(f"FS_UPDATE: Saved {file.filename}. Indexing...")
     
     try:
         if file.filename.endswith('.pdf'):
@@ -155,10 +170,7 @@ async def upload_file(file: UploadFile = File(...)):
         docs = loader.load()
         chunks = text_splitter.split_documents(docs)
         vectorstore.add_documents(chunks)
-        print(f"INDEX_SUCCESS: {len(chunks)} vectors added to memory.")
-        
     except Exception as e:
-        print(f"INDEX_ERROR: Could not parse {file.filename}. Error: {e}")
         return {"status": "error", "message": str(e)}
 
     return {"status": "success", "filename": file.filename}
