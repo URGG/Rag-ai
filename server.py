@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import ollama
-
+from ollama import AsyncClient
+from langchain_core.documents import Document
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -23,11 +24,7 @@ ollama_process = None
 async def lifespan(app: FastAPI):
     global ollama_process
     try:
-        ollama_process = subprocess.Popen(
-            ["ollama", "serve"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+        ollama_process = subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(2)
     except Exception:
         pass
@@ -43,6 +40,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Agent-Status"]
 )
 
 DATA_DIR = "H:/RAG/data"
@@ -63,6 +61,7 @@ class ChatRequest(BaseModel):
     question: str
 
 pending_command = None
+recent_uploads = [] 
 
 def get_history():
     cursor.execute('SELECT user_query, ai_response FROM chat_history ORDER BY id DESC LIMIT 5')
@@ -74,54 +73,60 @@ def save_to_memory(user_query, ai_response):
     conn.commit()
 
 async def generate_stream(question: str, system_prompt: str):
-    response_iter = ollama.chat(
+    client = AsyncClient()
+    response_iter = await client.chat(
         model='llama3',
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': question}
-        ],
+        messages=[{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': question}],
         stream=True
     )
-    
     full_response = ""
-    for chunk in response_iter:
+    async for chunk in response_iter:
         token = chunk['message']['content']
         full_response += token
         yield token
-        
     save_to_memory(question, full_response)
 
 @app.post("/ask")
 async def ask_ai(request: ChatRequest):
     user_input_lower = request.question.lower().strip()
     route_decision = "chat"
+    status_header = "Generating response..."
+    
+    files_str = ", ".join(recent_uploads) if recent_uploads else "None"
     
     if len(user_input_lower.split()) > 3 and user_input_lower not in ["hi", "hello", "hey", "test"]:
-        router_prompt = "Output ONLY a JSON object with 'route': 'local_search', 'web_search', or 'chat'."
+        router_prompt = f"Active files: {files_str}. If the user asks about these files, or says 'it' or 'this', route to 'local_search'. Output ONLY a JSON object with 'route': 'local_search', 'web_search', or 'chat'."
         try:
-            route_response = ollama.chat(model='llama3', messages=[{'role': 'user', 'content': router_prompt}])
+            client = AsyncClient()
+            route_response = await client.chat(model='llama3', messages=[{'role': 'user', 'content': router_prompt}])
             raw_json = route_response['message']['content'].replace('```json', '').replace('```', '').strip()
             route_decision = json.loads(raw_json).get("route", "chat")
-        except:
+        except Exception:
             pass
 
     context = ""
     if route_decision == "local_search":
+        status_header = "Searching Workspace files..."
         try:
-            search_results = vectorstore.similarity_search(request.question, k=3)
+            search_results = vectorstore.similarity_search(request.question, k=4)
             context = "\n---\n".join([doc.page_content for doc in search_results])
         except Exception:
-            context = "Database empty."
+            pass
     elif route_decision == "web_search":
+        status_header = "Browsing the web..."
         try:
             context = web_search.run(request.question)
         except Exception:
             pass
 
     history_text = get_history()
-    system_prompt = f"Context: {context if context else 'None'}. History: {history_text}. Answer directly."
+    system_prompt = f"Context: {context if context else 'None'}. History: {history_text}. Active Workspace Files: {files_str}. Answer directly based on the provided Context. If asked about a file, assume it is one of the Active Workspace Files."
     
-    return StreamingResponse(generate_stream(request.question, system_prompt), media_type="text/event-stream")
+    return StreamingResponse(
+        generate_stream(request.question, system_prompt), 
+        media_type="text/plain",
+        headers={"X-Agent-Status": status_header}
+    )
 
 @app.post("/request_command")
 async def request_command(request: ChatRequest):
@@ -155,9 +160,35 @@ async def upload_file(file: UploadFile = File(...)):
         docs = loader.load()
         chunks = text_splitter.split_documents(docs)
         vectorstore.add_documents(chunks)
+        
+        if file.filename not in recent_uploads:
+            recent_uploads.append(file.filename)
+            
     except Exception as e:
         return {"status": "error", "message": str(e)}
     return {"status": "success", "filename": file.filename}
+
+@app.post("/commit_memory")
+async def commit_memory(request: ChatRequest):
+    try:
+        new_doc = Document(
+            page_content=request.question,
+            metadata={"source": "user_verified_solution", "timestamp": time.time()}
+        )
+        vectorstore.add_documents([new_doc])
+        return {"status": "success", "message": "Solution committed to long-term memory."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/clear_memory")
+async def clear_memory():
+    try:
+        cursor.execute('DELETE FROM chat_history')
+        conn.commit()
+        recent_uploads.clear() 
+        return {"status": "success", "message": "Short-term memory wiped."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
