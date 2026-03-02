@@ -103,3 +103,99 @@ INFO:     127.0.0.1:13664 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:13666 - "GET /history HTTP/1.1" 404 Not Found
 ERROR:Kernel-Backend:Error: Ollama call failed with status code 404. Maybe your model is not found and you should pull the model with `ollama pull qwen3-coder`.
 INFO:     127.0.0.1:13669 - "POST /ask HTTP/1.1" 500 Internal Server Error
+[2026-03-02T21:07:10.426Z] Starting Python Backend...
+[2026-03-02T21:07:20.673Z] Server timed out.
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [17964]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[2026-03-02T21:10:22.736Z] Starting Python Backend...
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [17620]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:9394 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:10:28.651Z] Server is healthy and ready!
+INFO:     127.0.0.1:9396 - "GET /history HTTP/1.1" 404 Not Found
+ERROR:Kernel-Backend:Error: Error raised by inference endpoint: HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/embeddings (Caused by NewConnectionError("HTTPConnection(host='localhost', port=11434): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it"))
+INFO:     127.0.0.1:9398 - "POST /ask HTTP/1.1" 500 Internal Server Error
+[2026-03-02T21:11:55.369Z] Starting Python Backend...
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [6928]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:9570 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:12:01.009Z] Server is healthy and ready!
+INFO:     127.0.0.1:9572 - "GET /history HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:9573 - "POST /ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:9592 - "POST /upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:9592 - "POST /ask HTTP/1.1" 200 OK
+[2026-03-02T21:20:47.455Z] Starting Python Backend...
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [17200]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:9779 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:20:53.612Z] Server is healthy and ready!
+INFO:     127.0.0.1:9781 - "GET /history HTTP/1.1" 404 Not Found
+[2026-03-02T21:22:42.003Z] Starting Python Backend...
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [18876]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:9818 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:22:47.654Z] Server is healthy and ready!
+INFO:     127.0.0.1:9820 - "GET /history HTTP/1.1" 404 Not Found
+[2026-03-02T21:24:28.564Z] Starting Python Backend...
+INFO:     127.0.0.1:9832 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:24:28.585Z] Server is healthy and ready!
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [4656]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8000): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     127.0.0.1:9837 - "GET /history HTTP/1.1" 404 Not Found
+[2026-03-02T21:27:37.310Z] Starting Python Backend...
+H:\RAG\server.py:35: LangChainDeprecationWarning: The class `Ollama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaLLM``.
+  llm = Ollama(model=MODEL_NAME, temperature=0.3)
+H:\RAG\server.py:36: LangChainDeprecationWarning: The class `OllamaEmbeddings` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the :class:`~langchain-ollama package and should be used instead. To use it run `pip install -U :class:`~langchain-ollama` and import as `from :class:`~langchain_ollama import OllamaEmbeddings``.
+  embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     Started server process [18556]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:9883 - "GET / HTTP/1.1" 200 OK
+[2026-03-02T21:27:42.962Z] Server is healthy and ready!
+INFO:     127.0.0.1:9885 - "GET /history HTTP/1.1" 404 Not Found

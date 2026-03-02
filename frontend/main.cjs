@@ -62,7 +62,7 @@ function checkServerHealth(retries = 0) {
     });
 
     req.on('error', () => {
-        if (retries < 20) {
+        if (retries < 40) {
             setTimeout(() => checkServerHealth(retries + 1), 500);
         } else {
             log('Server timed out.');

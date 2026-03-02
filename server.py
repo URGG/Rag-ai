@@ -13,7 +13,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 
 
-MODEL_NAME = "qwen3-coder"
+MODEL_NAME = "qwen2.5-coder:7b"
 EMBEDDING_MODEL = "nomic-embed-text"
 PERSIST_DIRECTORY = "./chroma_db"
 UPLOAD_DIRECTORY = "./uploads"
