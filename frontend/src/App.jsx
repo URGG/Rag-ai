@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Send, FileText, Bot, Database, User, Activity, UploadCloud, Settings, Cpu, Copy, Check, Sun, Moon, Brain, Square, Loader2, Eraser, Code2, Network, Trash2, ChevronDown, Play, Terminal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Send, FileText, Bot, Database, User, Activity, UploadCloud, Settings, Cpu, Copy, Check, Sun, Moon, Brain, Square, Loader2, Eraser, Code2, Network, Trash2, ChevronDown, Play, Terminal } from 'lucide-react';
-// --- THE CUSTOM KERNEL LOGO ---
+
 const KernelLogo = ({ className }) => (
   <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M50 5L90 27.5V72.5L50 95L10 72.5V27.5L50 5Z" stroke="currentColor" strokeWidth="6" strokeLinejoin="round"/>
@@ -33,6 +33,22 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // NEW: Fetch persistent history on boot
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/history')
+      .then(res => res.json())
+      .then(data => {
+        if (data.history && data.history.length > 0) {
+          const restored = [{ role: 'ai', text: "Kernel Workspace initialized. Restoring previous session data..." }];
+          data.history.forEach(h => {
+            restored.push({ role: 'user', text: h.user });
+            restored.push({ role: 'ai', text: h.ai });
+          });
+          setMessages(restored);
+        }
+      }).catch(err => console.log("No previous history found."));
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isTyping, agentStatus]);
@@ -46,56 +62,6 @@ function App() {
       setUploadedFiles([]); 
     } catch (error) {
       console.error(error);
-    }
-  };
-
-  const triggerAutoAnalysis = async (filename) => {
-    const autoPrompt = `System Event: The user just uploaded a file named "${filename}". Based on your file previews, briefly summarize what this file is, and tell the user exactly what tasks or problems need to be solved in it.`;
-
-    setMessages(prev => [
-      ...prev, 
-      { role: 'user', text: `[Attached File: ${filename}]` }, 
-      { role: 'ai', text: "" }
-    ]);
-    
-    setIsTyping(true);
-    setAgentStatus("Analyzing document...");
-
-    const controller = new AbortController();
-    setAbortController(controller);
-
-    try {
-      const response = await fetch('http://127.0.0.1:8000/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: autoPrompt,
-          persona: activePersona 
-        }),
-        signal: controller.signal
-      });
-
-      setAgentStatus(response.headers.get("X-Agent-Status") || "Generating summary...");
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setMessages(prev => {
-          const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          newMessages[lastIndex] = { ...newMessages[lastIndex], text: newMessages[lastIndex].text + chunk };
-          return newMessages;
-        });
-      }
-    } catch (error) {
-      if (error.name !== 'AbortError') console.error(error);
-    } finally {
-      setIsTyping(false);
-      setAgentStatus("");
-      setAbortController(null);
     }
   };
 
@@ -150,20 +116,6 @@ function App() {
     }
   };
 
-  const commitToMemory = async (text) => {
-    try {
-      await fetch('http://127.0.0.1:8000/commit_memory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text }),
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = () => setIsDragging(false);
   const handleDrop = async (e) => {
     e.preventDefault();
     setIsDragging(false);
@@ -172,26 +124,24 @@ function App() {
     for (let file of files) {
       const formData = new FormData();
       formData.append("file", file);
-      
       try {
-        setAgentStatus(`Uploading and parsing ${file.name}...`);
+        setAgentStatus(`Uploading ${file.name} to Workspace...`);
         const response = await fetch("http://127.0.0.1:8000/upload", { method: "POST", body: formData });
         const result = await response.json();
-        
         setUploadedFiles(prev => [...new Set([...prev, result.filename])]);
         
-        setAgentStatus("Extracting document context...");
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        await triggerAutoAnalysis(result.filename);
+        // Let the Watchdog backend handle the indexing!
+        setMessages(prev => [...prev, { role: 'user', text: `[System Event: Uploaded ${result.filename}]` }, { role: 'ai', text: `I see you added ${result.filename} to the Workspace. The backend Watchdog is indexing it into ChromaDB now.` }]);
       } catch (err) {
         console.error("Upload failed", err);
+      } finally {
+        setAgentStatus("");
       }
     }
   };
 
   return (
-    <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className="flex h-screen bg-[#FAFAFA] dark:bg-[#0A0A0B] text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative">
+    <div onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop} className="flex h-screen bg-[#FAFAFA] dark:bg-[#0A0A0B] text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-500/30 overflow-hidden relative">
       
       {isDragging && (
         <div className="absolute inset-0 z-50 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center pointer-events-none">
@@ -224,25 +174,17 @@ function App() {
           <div>
             <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 px-1">Engine Behavior</div>
             <div className="relative">
-              <button 
-                onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-[#141417] border border-gray-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:border-blue-500/50 transition-colors"
-              >
+              <button onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-[#141417] border border-gray-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:border-blue-500/50 transition-colors">
                 <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                   <Cpu size={16} className="text-blue-500" />
                   {activePersona}
                 </div>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${isPersonaMenuOpen ? 'rotate-180' : ''}`} />
               </button>
-              
               {isPersonaMenuOpen && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl overflow-hidden z-20">
                   {["Standard AI", "Strict Code Debugger", "Algorithm Explainer"].map((persona) => (
-                    <button 
-                      key={persona}
-                      onClick={() => { setActivePersona(persona); setIsPersonaMenuOpen(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors"
-                    >
+                    <button key={persona} onClick={() => { setActivePersona(persona); setIsPersonaMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors">
                       {persona}
                     </button>
                   ))}
@@ -254,20 +196,17 @@ function App() {
           <div>
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Session Context</div>
-              <span className="text-[10px] font-mono bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
-                {uploadedFiles.length} files
-              </span>
+              <span className="text-[10px] font-mono bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">{uploadedFiles.length} files</span>
             </div>
-            
             <div className="space-y-2">
               {uploadedFiles.length === 0 ? (
                 <div className="border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg p-6 text-center">
                   <FileText size={20} className="mx-auto text-gray-400 mb-2 opacity-50" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Drag files here to build context</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Drag files to build context</p>
                 </div>
               ) : (
                 uploadedFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-[#141417] border border-gray-200 dark:border-zinc-800 rounded-lg group">
+                  <div key={idx} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-[#141417] border border-gray-200 dark:border-zinc-800 rounded-lg">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <FileText size={14} className="text-blue-500 flex-shrink-0" />
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{file}</span>
@@ -290,15 +229,6 @@ function App() {
                   <div className="h-full bg-blue-500 w-[60%]"></div>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-gray-500">Vector Database</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-mono">Online</span>
-                </div>
-                <div className="h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-[100%]"></div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -316,9 +246,7 @@ function App() {
                 <div className={`flex-1 min-w-0 ${m.role === 'user' ? 'flex flex-col items-end' : ''}`}>
                   <div className={`inline-block max-w-[90%] ${m.role === 'user' ? 'bg-blue-600 text-white px-5 py-3 rounded-2xl rounded-tr-sm shadow-md' : 'text-gray-800 dark:text-gray-200'}`}>
                     <div className={`prose dark:prose-invert max-w-none text-[15px] leading-relaxed ${m.role === 'user' ? 'text-white' : ''}`}>
-                      {m.role === 'user' ? (
-                        m.text
-                      ) : (
+                      {m.role === 'user' ? ( m.text ) : (
                         <ReactMarkdown components={{
                           code({ node, inline, className, children, ...props }) {
                             const match = /language-(\w+)/.exec(className || '');
@@ -369,7 +297,6 @@ function App() {
                                   {codeStr}
                                 </SyntaxHighlighter>
                                 
-                                {/* THE NEW LOCAL TERMINAL OUTPUT */}
                                 {output && (
                                   <div className="border-t border-gray-200 dark:border-zinc-800 bg-[#F4F4F5] dark:bg-[#09090B] p-4">
                                     <div className="flex items-center gap-2 mb-2">
@@ -388,14 +315,6 @@ function App() {
                       )}
                     </div>
                   </div>
-                  
-                  {m.role === 'ai' && m.text && !isTyping && (
-                    <div className="mt-3 flex gap-3">
-                      <button onClick={() => commitToMemory(m.text)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-transparent hover:border-gray-200 dark:hover:border-zinc-700">
-                        <Brain size={14}/> Extract to Vector DB
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -408,7 +327,8 @@ function App() {
             <div className="flex justify-between items-center h-8 px-2 mb-2">
               <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {isTyping && <Loader2 size={14} className="animate-spin text-blue-500" />}
-                {agentStatus}
+                {agentStatus || "System Idle"}
+                <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 animate-pulse">Live</span>
               </div>
               {isTyping && (
                 <button onClick={handleStop} className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-zinc-900 border border-red-200 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors text-[11px] font-bold uppercase tracking-wider shadow-sm">
